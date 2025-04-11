@@ -77,7 +77,6 @@ const Questionnaire: React.FC = () => {
   };
 
   const progress = (currentIndex + 1) / questions.length;
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
@@ -85,20 +84,31 @@ const Questionnaire: React.FC = () => {
         backgroundColor="transparent"
         translucent
       />
-      <ImageBackground source={require('./assets/bg.png')} // ← Is this path correct?
-  style={styles.backgroundImage}
-  resizeMode="cover"
->
+
+      <ImageBackground
+        source={backgroundImage}
+        style={styles.backgroundImage}
+        resizeMode="cover">
+        
+       
+        <View style={styles.darkOverlay} />
+
+        
+        <View style={styles.whiteHintOverlay} />
+
+       
         <BlurView
           style={styles.blurOverlay}
-          blurType="dark"
-          blurAmount={10}
-          reducedTransparencyFallbackColor="#000"
+          blurType="light" 
+          blurAmount={25}
+          reducedTransparencyFallbackColor="rgba(255,255,255,0.1)"
         />
+
         <View style={styles.container}>
           <View style={styles.progressBarContainer}>
             <View style={[styles.progressBar, {width: `${progress * 100}%`}]} />
           </View>
+
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.inner}>
@@ -150,15 +160,21 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    resizeMode: 'cover',
     ...StyleSheet.absoluteFillObject,
+  },
+  darkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  whiteHintOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)', 
   },
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
   container: {
     flex: 1,
-    backgroundColor: '#000',
     paddingHorizontal: 24,
     paddingTop: 50,
   },
