@@ -1,131 +1,212 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useRef, useState} from 'react';
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  Text,
+  Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Animated,
+  StatusBar,
+  ImageBackground,
 } from 'react-native';
+import {BlurView} from '@react-native-community/blur';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const backgroundImage = require('./assets/bg.png');
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+type QuestionType = 'choice' | 'text';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+interface Question {
+  id: number;
+  text: string;
+  type: QuestionType;
+  options?: string[];
+  keyType?: 'alphabet' | 'numeric';
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const questions: Question[] = [
+  {id: 1, text: "What's your Full Name?", type: 'text', keyType: 'alphabet'},
+  {id: 2, text: "What's your Running Age?", type: 'text', keyType: 'alphabet'},
+  {id: 3, text: "What's your zipcode?", type: 'text', keyType: 'numeric'},
+  {id: 4, text: 'Are you on Medicare?', type: 'choice', options: ['Yes', 'No']},
+  {
+    id: 5,
+    text: 'Do you have Insurance?',
+    type: 'choice',
+    options: ['Yes', 'No'],
+  },
+];
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+const Questionnaire: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [inputValue, setInputValue] = useState<string>('');
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const currentQuestion = questions[currentIndex];
+
+  const slideInFromRight = () => {
+    slideAnim.setValue(300);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the recommendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+  const handleNext = (answer: string) => {
+    if (currentIndex < questions.length - 1) {
+      setAnswers(prev => ({
+        ...prev,
+        [questions[currentIndex].id]: answer,
+      }));
+      setCurrentIndex(prev => prev + 1);
+      setInputValue('');
+      slideInFromRight();
+    } else {
+      console.log('answers', answers);
+    }
+  };
+
+  const handleTextSubmit = () => {
+    if (inputValue.trim()) {
+      handleNext(inputValue.trim());
+    }
+  };
+
+  const progress = (currentIndex + 1) / questions.length;
 
   return (
-    <View style={backgroundStyle}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
       />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
+      <ImageBackground source={require('./assets/bg.png')} // ← Is this path correct?
+  style={styles.backgroundImage}
+  resizeMode="cover"
+>
+        <BlurView
+          style={styles.blurOverlay}
+          blurType="dark"
+          blurAmount={10}
+          reducedTransparencyFallbackColor="#000"
+        />
+        <View style={styles.container}>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBar, {width: `${progress * 100}%`}]} />
+          </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.inner}>
+            <Animated.View style={{transform: [{translateX: slideAnim}]}}>
+              <Text style={styles.questionText}>{currentQuestion.text}</Text>
+              <Text style={styles.subText}>
+                This helps us personalize your experience
+              </Text>
+
+              {currentQuestion.type === 'choice' ? (
+                currentQuestion.options?.map((opt, idx) => (
+                  <Pressable
+                    key={idx}
+                    style={styles.optionButton}
+                    onPress={() => handleNext(opt)}>
+                    <Text style={styles.optionText}>{opt}</Text>
+                  </Pressable>
+                ))
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  keyboardType={
+                    currentQuestion.keyType === 'numeric'
+                      ? 'numeric'
+                      : 'default'
+                  }
+                  placeholder="Type here..."
+                  placeholderTextColor="#aaa"
+                  returnKeyType="done"
+                  onSubmitEditing={handleTextSubmit}
+                  value={inputValue}
+                  onChangeText={text => setInputValue(text)}
+                />
+              )}
+            </Animated.View>
+          </KeyboardAvoidingView>
         </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
-}
+};
+
+export default Questionnaire;
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: 'cover',
+    ...StyleSheet.absoluteFillObject,
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
     paddingHorizontal: 24,
+    paddingTop: 50,
   },
-  sectionTitle: {
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#333',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 24,
+    marginTop: 10,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#facc15',
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 60,
+  },
+  questionText: {
+    color: '#fff',
     fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
     fontWeight: '700',
+    marginBottom: 8,
+  },
+  subText: {
+    color: '#aaa',
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  optionButton: {
+    backgroundColor: '#1f1f1f',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  optionText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  input: {
+    backgroundColor: '#1f1f1f',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    fontSize: 18,
+    color: '#fff',
   },
 });
-
-export default App;
